@@ -32,12 +32,13 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .zap_router = .{
-            .path = "../../",
-        },
         .zap = .{
             .url = "git+https://github.com/zigzap/zap?ref=zig-master#a0f67ffc6eafe92f4efb40561a2a4644f51aa775",
             .hash = "zap-0.10.6-GoeB8waKJAAbeCexLZVXgDRu9hitxf0EDqe4_yXdHoDl",
+        },
+        .zap_router = .{
+            .url = "git+https://github.com/s-soroosh/zap-router.git#657a69ad1f286cc09f0c0c6f710cdb18aab699af",
+            .hash = "zap_router-0.0.0-79WtPI8wAABZoOk74V8njc0sdgC3LQApf5tFIHkJFls-",
         },
     },
     .paths = .{
