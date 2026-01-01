@@ -36,9 +36,13 @@ pub fn build(b: *std.Build) void {
 
     const mod = b.addModule("zap_router", .{
         .root_source_file = b.path("src/root.zig"),
+
         // Later on we'll use this module as the root module of a test executable
         // which requires us to specify a target.
-        .target = target
+        .target = target,
+        .imports = &.{
+            .{ .name = "zap", .module = zap.module("zap") },
+        },
     });
 
     const exe = b.addExecutable(.{
