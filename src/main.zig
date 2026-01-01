@@ -2,7 +2,8 @@ const std = @import("std");
 const Io = std.Io;
 
 const zap = @import("zap");
-const ZapRouter = @import("ZapRouter.zig");
+const zap_router = @import("zap_router");
+const ZapRouter = zap_router.ZapRouter;
 
 fn dispatchRequest(req: zap.Request) !void {
     try req.sendJson("{\"message\":\"Hello dude\"}");
