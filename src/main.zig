@@ -34,10 +34,9 @@ pub fn main() !void {
     try stdout_writer.flush();
 
     var router = ZapRouter.init(gpa);
-    try router.route(.GET, "/hello", sayHello);
+    defer router.deinit();
 
-    var router2 = ZapRouter.init(gpa);
-    try router2.route(.GET, "/hi", sayHello);
+    try router.route(.GET, "/hello", sayHello);
 
     var zap_server1 = zap.HttpListener.init(.{ .port = 3000, .on_request = dispatchRequest, .log = false });
 

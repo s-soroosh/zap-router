@@ -34,3 +34,8 @@ pub fn onRequest(self: *Self) zap.HttpRequestFn {
     };
     return obj.apply;
 }
+
+
+pub fn deinit(self: *Self) void {
+    self.routes.deinit();
+}
