@@ -3,6 +3,7 @@ const std = @import("std");
 const Self = @This();
 const StringHashMap = std.StringHashMap;
 const startsWith = std.mem.startsWith;
+const endsWith = std.mem.endsWith;
 const split = std.mem.splitAny;
 
 pub const StaticNode = struct {
@@ -37,9 +38,10 @@ pub fn addPath(self: *Self, path: []const u8) !void {
     var root = &self._root;
     while (parts.next()) |part| {
         if (part.len == 0) continue;
-        if (startsWith(u8, part, "{")) {
+        if (try _isDynamicNode(part)) {
             std.debug.print("This is a parameter\n", .{});
-            // var node = DynamicNode {}
+            const new_node = try _createNode(self.allocator);
+            try root.dynamicChildren.put(part[1 .. part.len - 1], new_node);
         } else {
             // static node
             if (root.staticChildren.get(part)) |node| {
@@ -58,6 +60,16 @@ fn _createNode(allocator: std.mem.Allocator) !*StaticNode {
     const node = try allocator.create(StaticNode);
     node.* = try StaticNode.init(allocator, false);
     return node;
+}
+
+fn _isDynamicNode(part: []const u8) !bool {
+    if (startsWith(u8, part, "{")) {
+        if (!endsWith(u8, part, "}")) {
+            return error.InvalidPathParameter;
+        }
+        return true;
+    }
+    return false;
 }
 
 // TODO: fix memory leaks
