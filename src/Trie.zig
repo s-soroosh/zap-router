@@ -12,9 +12,9 @@ pub fn Node(T: type) type {
         staticChildren: StringHashMap(*Node(T)),
         dynamicChildren: StringHashMap(*Node(T)),
         dynamic: bool,
-        data: *const T,
+        data: ?T,
 
-        pub fn init(allocator: std.mem.Allocator, isAnswer: bool, dynamic: bool, data: *const T) !Self {
+        pub fn init(allocator: std.mem.Allocator, isAnswer: bool, dynamic: bool, data: ?T) !Self {
             return .{
                 .staticChildren = StringHashMap(*Self).init(allocator),
                 .dynamicChildren = StringHashMap(*Self).init(allocator),
@@ -31,7 +31,6 @@ pub fn Node(T: type) type {
     };
 }
 
-
 pub fn Trie(T: type) type {
     return struct {
         const Self = @This();
@@ -39,26 +38,26 @@ pub fn Trie(T: type) type {
         allocator: std.mem.Allocator,
 
         pub fn init(allocator: std.mem.Allocator) !Self {
-            return .{ .allocator = allocator, ._root = try _createNode(allocator, u8, &1) };
+            return .{ .allocator = allocator, ._root = try _createNode(allocator, T, null) };
         }
 
         pub fn deinit(self: *Self) void {
             self._root.deinit();
         }
 
-        pub fn addPath(self: *Self, path: []const u8) !void {
+        pub fn addPath(self: *Self, path: []const u8, data: T) !void {
             var parts = split(comptime u8, path, "/");
             var root = self._root;
             while (parts.next()) |part| {
                 if (part.len == 0) continue;
                 if (try _isDynamicNode(part)) {
-                    const new_node = try _createNode(self.allocator, u8, &1);
+                    const new_node = try _createNode(self.allocator, T, data);
                     try root.dynamicChildren.put(part[1 .. part.len - 1], new_node);
                 } else {
                     if (root.staticChildren.get(part)) |node| {
                         root = node;
                     } else {
-                        const new_node = try _createNode(self.allocator, u8, &1);
+                        const new_node = try _createNode(self.allocator, T, data);
                         // std.debug.print("part:{s} new node: {any}\n", .{part, new_node});
                         try root.staticChildren.put(part, new_node);
                         root = new_node;
@@ -69,7 +68,7 @@ pub fn Trie(T: type) type {
     };
 }
 
-fn _createNode(allocator: std.mem.Allocator, T: type, data: *const T) !*Node(T) {
+fn _createNode(allocator: std.mem.Allocator, T: type, data: ?T) !*Node(T) {
     const node = try allocator.create(Node(T));
     node.* = try Node(T).init(allocator, false, false, data);
     return node;
@@ -89,29 +88,29 @@ fn _isDynamicNode(part: []const u8) !bool {
 test "add path" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
-    try trie.addPath("/users/{userId}");
+    try trie.addPath("/users/{userId}", 1);
     try std.testing.expect(trie._root.staticChildren.contains("users"));
 }
 
 test "add path with multiple static sections" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
-    try trie.addPath("/part1/part2/part3");
+    try trie.addPath("/part1/part2/part3", 2);
     try std.testing.expect(trie._root.staticChildren.get("part1").?.staticChildren.get("part2").?.staticChildren.contains("part3"));
 }
 
 test "add path with prefix overlap" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
-    try trie.addPath("/part1/part2/part3");
-    try trie.addPath("/part1/part4/part5");
+    try trie.addPath("/part1/part2/part3", 3);
+    try trie.addPath("/part1/part4/part5", 4);
     try std.testing.expectEqual(2, trie._root.staticChildren.get("part1").?.staticChildren.count());
 }
 
 test "path variables" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
-    try trie.addPath("/users/{userId}");
+    try trie.addPath("/users/{userId}",1);
     try std.testing.expectEqual(1, trie._root.staticChildren.get("users").?.dynamicChildren.count());
     try std.testing.expect(trie._root.staticChildren.get("users").?.dynamicChildren.get("userId") != null);
 }
