@@ -3,24 +3,32 @@ const zap = @import("zap");
 const Trie = @import("Trie.zig").Trie;
 
 const StringHashMap = std.StringHashMap;
+const logger = std.log.scoped(.path_finder);
 
 pub const Path = struct {
     params: StringHashMap([]const u8),
-    handler: *zap.HttpRequestFn,
+    handler: zap.HttpRequestFn,
+
+    //implement deinit
 };
 
-pub fn find(trie: Trie(zap.HttpRequestFn), path: []const u8) !Path {
+pub fn find(allocator: std.mem.Allocator, trie: Trie(zap.HttpRequestFn), path: []const u8) !Path {
     if (path.len == 0) return error.InvalidPath;
-    const path_parts = std.mem.splitAny(u8, path, "/");
+    var path_parts = std.mem.splitAny(u8, path, "/");
     var current_node = trie._root;
-    var params = StringHashMap([]const u8);
+    var params = StringHashMap([]const u8).init(allocator);
     while (path_parts.next()) |path_part| {
-        if (current_node.staticChildren.getPtr(path_part)) |node| {
+        if (std.mem.eql(u8, path_part, "")) continue;
+        if (current_node.staticChildren.get(path_part)) |node| {
+            // logger.info("path part: {s}\n", .{path_part});
             current_node = node;
         } else {
+
+            // logger.info("path part: {s}\n", .{path_part});
             if (current_node.dynamicChildren.count() != 0) {
-                const key = current_node.dynamicChildren.keyIterator().next().?;
-                params.put(key, path_part);
+                var dynamicNodeIterator = current_node.dynamicChildren.keyIterator();
+                const key = dynamicNodeIterator.next().?.*;
+                try params.put(key, path_part);
                 current_node = current_node.dynamicChildren.get(key).?;
             } else {
                 return error.RouteNotFound;
@@ -31,7 +39,12 @@ pub fn find(trie: Trie(zap.HttpRequestFn), path: []const u8) !Path {
     if (current_node.isAnswer) {
         return .{
             .params = params,
-            .handler = current_node.data,
+            .handler = current_node.data.?,
+        };
+    } else {
+        return .{
+            .params = params,
+            .handler = current_node.data.?,
         };
     }
 }
@@ -40,8 +53,13 @@ fn _handle(req: zap.Request) !void {
     _ = req;
 }
 
-test "basic" {
+// memory leak
+test "basico" {
+    std.testing.log_level = .debug; // or .info
+
     var trie = try Trie(zap.HttpRequestFn).init(std.heap.page_allocator);
     try trie.addPath("/users/register", _handle);
-    try std.testing.expect(1 == 1);
+    const result = try find(std.testing.allocator, trie, "/users/register");
+
+    try std.testing.expect(result.params.count() == 0);
 }
