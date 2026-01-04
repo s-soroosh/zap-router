@@ -47,23 +47,24 @@ pub fn Trie(T: type) type {
 
         pub fn addPath(self: *Self, path: []const u8, data: T) !void {
             var parts = split(comptime u8, path, "/");
-            var root = self._root;
+            var current_node = self._root;
             while (parts.next()) |part| {
                 if (part.len == 0) continue;
                 if (try _isDynamicNode(part)) {
                     const new_node = try _createNode(self.allocator, T, data);
-                    try root.dynamicChildren.put(part[1 .. part.len - 1], new_node);
+                    try current_node.dynamicChildren.put(part[1 .. part.len - 1], new_node);
                 } else {
-                    if (root.staticChildren.get(part)) |node| {
-                        root = node;
+                    if (current_node.staticChildren.get(part)) |node| {
+                        current_node = node;
                     } else {
                         const new_node = try _createNode(self.allocator, T, data);
                         // std.debug.print("part:{s} new node: {any}\n", .{part, new_node});
-                        try root.staticChildren.put(part, new_node);
-                        root = new_node;
+                        try current_node.staticChildren.put(part, new_node);
+                        current_node = new_node;
                     }
                 }
             }
+            current_node.isAnswer = true;
         }
     };
 }
@@ -110,7 +111,7 @@ test "add path with prefix overlap" {
 test "path variables" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
-    try trie.addPath("/users/{userId}",1);
+    try trie.addPath("/users/{userId}", 1);
     try std.testing.expectEqual(1, trie._root.staticChildren.get("users").?.dynamicChildren.count());
     try std.testing.expect(trie._root.staticChildren.get("users").?.dynamicChildren.get("userId") != null);
 }

@@ -42,10 +42,7 @@ pub fn find(allocator: std.mem.Allocator, trie: Trie(zap.HttpRequestFn), path: [
             .handler = current_node.data.?,
         };
     } else {
-        return .{
-            .params = params,
-            .handler = current_node.data.?,
-        };
+        return error.RouteNotFound;
     }
 }
 
@@ -54,12 +51,18 @@ fn _handle(req: zap.Request) !void {
 }
 
 // memory leak
-test "basico" {
-    std.testing.log_level = .debug; // or .info
-
+test "basic success" {
     var trie = try Trie(zap.HttpRequestFn).init(std.heap.page_allocator);
     try trie.addPath("/users/register", _handle);
     const result = try find(std.testing.allocator, trie, "/users/register");
 
     try std.testing.expect(result.params.count() == 0);
+}
+
+test "basic failure" {
+    var trie = try Trie(zap.HttpRequestFn).init(std.heap.page_allocator);
+    try trie.addPath("/users/404", _handle);
+    const find_result = find(std.testing.allocator, trie, "/users/register");
+
+    try std.testing.expectError(error.RouteNotFound, find_result);
 }
