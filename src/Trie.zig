@@ -53,6 +53,8 @@ pub fn Trie(T: type) type {
                 if (try _isDynamicNode(part)) {
                     const new_node = try _createNode(self.allocator, T, data);
                     try current_node.dynamicChildren.put(part[1 .. part.len - 1], new_node);
+                    // TODO: add a test
+                    current_node = new_node;
                 } else {
                     if (current_node.staticChildren.get(part)) |node| {
                         current_node = node;

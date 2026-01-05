@@ -4,15 +4,16 @@ const Trie = @import("Trie.zig").Trie;
 
 const StringHashMap = std.StringHashMap;
 const logger = std.log.scoped(.path_finder);
+pub const HttpRequestFn0 = *const fn (zap.Request, std.StringHashMap([]const u8)) anyerror!void;
 
 pub const Path = struct {
     params: StringHashMap([]const u8),
-    handler: zap.HttpRequestFn,
+    handler: HttpRequestFn0,
 
     //implement deinit
 };
 
-pub fn find(allocator: std.mem.Allocator, trie: Trie(zap.HttpRequestFn), path: []const u8) !Path {
+pub fn find(allocator: std.mem.Allocator, trie: Trie(HttpRequestFn0), path: []const u8) !Path {
     if (path.len == 0) return error.InvalidPath;
     var path_parts = std.mem.splitAny(u8, path, "/");
     var current_node = trie._root;
@@ -24,12 +25,13 @@ pub fn find(allocator: std.mem.Allocator, trie: Trie(zap.HttpRequestFn), path: [
             current_node = node;
         } else {
 
-            // logger.info("path part: {s}\n", .{path_part});
+            logger.info("path part: {s} {d}\n", .{path_part, current_node.dynamicChildren.count()});
             if (current_node.dynamicChildren.count() != 0) {
                 var dynamicNodeIterator = current_node.dynamicChildren.keyIterator();
                 const key = dynamicNodeIterator.next().?.*;
                 try params.put(key, path_part);
                 current_node = current_node.dynamicChildren.get(key).?;
+                logger.info("current node: {any} \n", .{current_node});
             } else {
                 return error.RouteNotFound;
             }
