@@ -33,12 +33,12 @@ pub fn main() !void {
 
     try stdout_writer.flush();
 
-    var router = ZapRouter.init(gpa);
+    var router = try ZapRouter.init(gpa);
     defer router.deinit();
 
     try router.route(.GET, "/hello", sayHello);
 
-    var zap_server1 = zap.HttpListener.init(.{ .port = 3000, .on_request = dispatchRequest, .log = false });
+    var zap_server1 = zap.HttpListener.init(.{ .port = 3000, .on_request = router.onRequest(), .log = false });
 
     try zap_server1.listen();
 
