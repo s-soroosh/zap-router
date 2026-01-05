@@ -23,12 +23,9 @@ pub fn find(allocator: std.mem.Allocator, trie: Trie(HttpRequestFn0), path: []co
         if (current_node.staticChildren.get(path_part)) |node| {
             current_node = node;
         } else {
-
-            if (current_node.dynamicChildren.count() != 0) {
-                var dynamicNodeIterator = current_node.dynamicChildren.keyIterator();
-                const key = dynamicNodeIterator.next().?.*;
-                try params.put(key, path_part);
-                current_node = current_node.dynamicChildren.get(key).?;
+            if (current_node.dynamicChild) |dynamic_node| {
+                try params.put(dynamic_node.pathPart, path_part);
+                current_node = dynamic_node;
                 logger.info("current node: {any} \n", .{current_node});
             } else {
                 return error.RouteNotFound;

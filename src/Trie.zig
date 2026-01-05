@@ -10,23 +10,23 @@ pub fn Node(T: type) type {
         const Self = @This();
         isAnswer: bool,
         staticChildren: StringHashMap(*Node(T)),
-        dynamicChildren: StringHashMap(*Node(T)),
-        dynamic: bool,
+        dynamicChild: ?*Node(T),
         data: ?T,
+        pathPart: []const u8,
 
-        pub fn init(allocator: std.mem.Allocator, isAnswer: bool, dynamic: bool, data: ?T) !Self {
+        pub fn init(allocator: std.mem.Allocator, isAnswer: bool, pathPart: []const u8, data: ?T) !Self {
             return .{
                 .staticChildren = StringHashMap(*Self).init(allocator),
-                .dynamicChildren = StringHashMap(*Self).init(allocator),
+                .dynamicChild = null,
                 .isAnswer = isAnswer,
-                .dynamic = dynamic,
                 .data = data,
+                .pathPart = pathPart,
             };
         }
 
+        // TODO: recursive deinit
         pub fn deinit(self: *Self) void {
             self.staticChildren.clearAndFree();
-            self.dynamicChildren.clearAndFree();
         }
     };
 }
@@ -38,7 +38,7 @@ pub fn Trie(T: type) type {
         allocator: std.mem.Allocator,
 
         pub fn init(allocator: std.mem.Allocator) !Self {
-            return .{ .allocator = allocator, ._root = try _createNode(allocator, T, null) };
+            return .{ .allocator = allocator, ._root = try _createNode(allocator, T, "/", null) };
         }
 
         pub fn deinit(self: *Self) void {
@@ -51,15 +51,15 @@ pub fn Trie(T: type) type {
             while (parts.next()) |part| {
                 if (part.len == 0) continue;
                 if (try _isDynamicNode(part)) {
-                    const new_node = try _createNode(self.allocator, T, data);
-                    try current_node.dynamicChildren.put(part[1 .. part.len - 1], new_node);
+                    const new_node = try _createNode(self.allocator, T, part, data);
+                    current_node.dynamicChild = new_node;
                     // TODO: add a test
                     current_node = new_node;
                 } else {
                     if (current_node.staticChildren.get(part)) |node| {
                         current_node = node;
                     } else {
-                        const new_node = try _createNode(self.allocator, T, data);
+                        const new_node = try _createNode(self.allocator, T, part, data);
                         try current_node.staticChildren.put(part, new_node);
                         current_node = new_node;
                     }
@@ -70,9 +70,9 @@ pub fn Trie(T: type) type {
     };
 }
 
-fn _createNode(allocator: std.mem.Allocator, T: type, data: ?T) !*Node(T) {
+fn _createNode(allocator: std.mem.Allocator, T: type, pathPart: []const u8, data: ?T) !*Node(T) {
     const node = try allocator.create(Node(T));
-    node.* = try Node(T).init(allocator, false, false, data);
+    node.* = try Node(T).init(allocator, false, pathPart, data);
     return node;
 }
 
@@ -113,6 +113,5 @@ test "path variables" {
     var trie = try Trie(u8).init(std.heap.c_allocator);
     defer trie.deinit();
     try trie.addPath("/users/{userId}", 1);
-    try std.testing.expectEqual(1, trie._root.staticChildren.get("users").?.dynamicChildren.count());
-    try std.testing.expect(trie._root.staticChildren.get("users").?.dynamicChildren.get("userId") != null);
+    try std.testing.expect(trie._root.staticChildren.get("users") != null);
 }
