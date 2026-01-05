@@ -21,11 +21,9 @@ pub fn find(allocator: std.mem.Allocator, trie: Trie(HttpRequestFn0), path: []co
     while (path_parts.next()) |path_part| {
         if (std.mem.eql(u8, path_part, "")) continue;
         if (current_node.staticChildren.get(path_part)) |node| {
-            // logger.info("path part: {s}\n", .{path_part});
             current_node = node;
         } else {
 
-            logger.info("path part: {s} {d}\n", .{path_part, current_node.dynamicChildren.count()});
             if (current_node.dynamicChildren.count() != 0) {
                 var dynamicNodeIterator = current_node.dynamicChildren.keyIterator();
                 const key = dynamicNodeIterator.next().?.*;

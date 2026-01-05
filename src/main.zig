@@ -2,7 +2,7 @@ const std = @import("std");
 const zap = @import("zap");
 const zap_router = @import("zap_router");
 const ZapRouter = zap_router.ZapRouter;
-const PathVariables = std.StringHashMap([]const u8);
+const PathVariables = zap_router.PathVariables;
 
 fn sayHello(req: zap.Request, _: PathVariables) !void {
     try req.sendBody("Hello");

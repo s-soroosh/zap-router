@@ -4,23 +4,23 @@ const Trie = @import("Trie.zig").Trie;
 const Self = @This();
 const find = @import("PathFinder.zig").find;
 
-pub const HttpRequestFn0 = *const fn (zap.Request, std.StringHashMap([]const u8)) anyerror!void;
+const HttpRequestFn = *const fn (zap.Request, std.StringHashMap([]const u8)) anyerror!void;
 
 const Allocator = std.mem.Allocator;
-routes: std.StringHashMap(HttpRequestFn0),
-trie: Trie(HttpRequestFn0),
+routes: std.StringHashMap(HttpRequestFn),
+trie: Trie(HttpRequestFn),
 allocator: Allocator,
 
 pub const Method = enum { GET, POST, DELETE, HEAD, PUT, PATCH, OPTION };
 var instance: *Self = undefined;
 
 pub fn init(allocator: Allocator) !Self {
-    const routes = std.StringHashMap(HttpRequestFn0).init(allocator);
-    const t = try Trie(HttpRequestFn0).init(allocator);
+    const routes = std.StringHashMap(HttpRequestFn).init(allocator);
+    const t = try Trie(HttpRequestFn).init(allocator);
     return .{ .routes = routes, .trie = t, .allocator = allocator };
 }
 
-pub fn route(self: *Self, method: Method, path: []const u8, handler: HttpRequestFn0) !void {
+pub fn route(self: *Self, method: Method, path: []const u8, handler: HttpRequestFn) !void {
     _ = method;
     try self.trie.addPath(path, handler);
     try self.routes.put(path, handler);
