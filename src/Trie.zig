@@ -60,7 +60,6 @@ pub fn Trie(T: type) type {
                         current_node = node;
                     } else {
                         const new_node = try _createNode(self.allocator, T, data);
-                        // std.debug.print("part:{s} new node: {any}\n", .{part, new_node});
                         try current_node.staticChildren.put(part, new_node);
                         current_node = new_node;
                     }

@@ -26,8 +26,6 @@ pub fn route(self: *Self, method: Method, path: []const u8, handler: HttpRequest
     try self.routes.put(path, handler);
 }
 pub fn dispatch(self: *Self, request: zap.Request) !void {
-    std.debug.print("you are here: {s}\n", .{request.path.?});
-
     if (request.path) |path| {
         const p = try find(self.allocator, self.trie, path);
         return p.handler(request, p.params);
